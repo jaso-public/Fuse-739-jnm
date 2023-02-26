@@ -204,6 +204,12 @@ int main(int argc, char *argv[])
     }
 
     fprintf(stdout, "starting FUSE filesystem unreliablefs\n");
+
+    printf("argc: %d\n", args.argc);
+    for(int i=0; i<args.argc; i++) {
+        printf("argv[%d]= \"%s\"\n", i, args.argv[i]);
+    }
+
     int ret = fuse_main(args.argc, args.argv, &unreliable_ops, NULL);
 
     /* cleanup */
