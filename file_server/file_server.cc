@@ -472,6 +472,7 @@ class GreeterServiceImpl final : public Greeter::Service {
         uint32_t mode;
         uint32_t uid;
         uint32_t gid ;
+        struct timespec ts[2];
 
         WritebackRequest data;
         while (reader->Read(&data)) {
@@ -481,6 +482,10 @@ class GreeterServiceImpl final : public Greeter::Service {
                 mode = data.mode();
                 uid = data.uid();
                 gid = data.gid();
+                ts[0].tv_sec = data.asec();
+                ts[0].tv_nsec = data.anano();
+                ts[1].tv_sec = data.msec();
+                ts[1].tv_nsec = data.mnano();
                 isFirst = false;
             }
 
@@ -540,18 +545,18 @@ class GreeterServiceImpl final : public Greeter::Service {
             return Status::OK;
         }
 
+        if(debug_flag>3) {
+            printf("ts[0] %ld.%09ld\n", ts[0].tv_sec, ts[0].tv_nsec);
+            printf("ts[1] %ld.%09ld\n", ts[1].tv_sec, ts[1].tv_nsec);
+        }
 
-//        struct timespec ts[2];
-//        ts[0].tv_sec
-//
-//        printf("ts[0] %ld.%09ld\n", ts[0].tv_sec, ts[0].tv_nsec);
-//        printf("ts[1] %ld.%09ld\n", ts[1].tv_sec, ts[1].tv_nsec);
-//
-//        int ret = utimensat(AT_FDCWD, path, ts, AT_SYMLINK_NOFOLLOW);
-//        if (ret == -1) {
-//            printf("utimensat failed errno:%d\n", errno);
-//            return -errno;
-//        }
+        int ret = utimensat(AT_FDCWD, temp.c_str(), ts, AT_SYMLINK_NOFOLLOW);
+        if (ret == -1) {
+            unlink(temp.c_str());
+            print_debug("RPC_writeback--utimensat", temp, result);
+            response->set_result(errno ? errno : EINVAL);
+            return Status::OK;
+        }
 
         // get the full path name for the file in our local file system
         std::string newpath = root +"/filesystem" + filename;

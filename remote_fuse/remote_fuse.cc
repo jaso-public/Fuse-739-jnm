@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <mutex>
 
 #include <dirent.h>
 #include <errno.h>
@@ -48,6 +50,15 @@ using helloworld::StatvfsStruct;
 int debug_level;
 char* remote_server;
 char* cache_path;
+
+struct open_file {
+    int dirty;
+    int readers;
+};
+typedef struct open_file open_file_t;
+
+std::mutex open_files_lock;
+unordered_map<string, open_file_t*> open_files;
 
 void set_value(uint8_t value, int offset, char* buffer) {
     if(value<10) {
@@ -575,6 +586,11 @@ public:
         request.set_uid(buf.st_uid);
         request.set_gid(buf.st_gid);
 
+        request.set_asec(buf.st_atim.tv_sec);
+        request.set_anano(buf.st_atim.tv_nsec);
+        request.set_msec(buf.st_mtim.tv_sec);
+        request.set_mnano(buf.st_mtim.tv_nsec);
+
         if(debug_level>2 ) {
             std::cout << "path:" << path
                     << " st_size:" << buf.st_size
@@ -740,14 +756,42 @@ extern "C" int rpc_open(const char *path, struct fuse_file_info *fi)
         if (debug_level>2 ) printf("************** rpc_open with O_CREAT  path:%s flags:%d\n", path, fi->flags);
     }
 
+    std::string p = std::string(path);
+
     char hash_path[256];
     hash_name((const unsigned char*)path, hash_path);
     if (debug_level>2 ) printf("rpc_open hash_path: [%s]\n", hash_path);
 
-    int result = greeterPtr->fetchfile(path, hash_path);
-    if (result < 0) {
-        if (debug_level>0) printf("rpc_open path:%s errno:%d strerror:%s\n", path, errno, strerror(errno));
-        return result;
+    int fetch_required = 0;
+    open_files_lock.lock();
+    open_file_t* o = open_files[p];
+    if(o==NULL) {
+        if(debug_level>4) printf("malloc of open_file_t for %s\n", path);
+        o = (open_file_t *) malloc(sizeof(open_file_t));
+        if(o==NULL) {
+            fprintf(stderr, "malloc failed\n");
+            exit(4);
+        }
+        o->dirty = 0;
+        o->readers = 1;
+        open_files[path] = o;
+        fetch_required = 1;
+    } else {
+        o->readers++;
+    }
+    if(debug_level>4) printf("file %s dirty:%d readers:%d\n", path, o->dirty, o->readers);
+    open_files_lock.unlock();
+
+    if(fetch_required) {
+        int result = greeterPtr->fetchfile(path, hash_path);
+        if (result < 0) {
+            if (debug_level > 0) printf("rpc_open path:%s errno:%d strerror:%s\n", path, errno, strerror(errno));
+            return result;
+        }
+    } else {
+        if(debug_level>2) {
+            printf("FETCH not required for %s\n", path);
+        }
     }
 
     int ret = open(hash_path, O_RDWR);
@@ -764,10 +808,49 @@ extern "C" int rpc_open(const char *path, struct fuse_file_info *fi)
 
 extern "C" int rpc_release(const char *path, struct fuse_file_info *fi) {
 
-    int ret = greeterPtr->writeback(path);
+    int needs_write = 0;
+    std::string p = std::string(path);
+
+    open_files_lock.lock();
+    open_file_t* o = open_files[p];
+    if(o==NULL) {
+        printf("WTF? don't have an open file\n");
+    } else {
+        needs_write = o->dirty;
+        o->dirty = 0;
+    }
+    open_files_lock.unlock();
+
+    int ret = 0;
+    if(needs_write) {
+        if(debug_level>2) {
+            printf("rpc_release -- file is dirty: %s\n", path);
+        }
+        ret = greeterPtr->writeback(path);
+        if(ret != 0) {
+            if(debug_level>2) {
+                printf("rpc_release -- writeback: %s ret:%d errno:%d\n", path, ret, errno);
+            }
+        }
+    }
 
     close(fi->fh);
     fi->fh = -1;
+
+    // decrement the number of file users
+    open_files_lock.lock();
+    o = open_files[p];
+    if(o==NULL) {
+        printf("WTF? don't have an open file\n");
+    } else {
+       if(o->readers < 2) {
+           open_files.erase(path);
+           free(o);
+       } else {
+           o->readers--;
+       }
+    }
+    open_files_lock.unlock();
 
     return ret;
 }
@@ -785,6 +868,21 @@ extern "C" int rpc_write(const char *path, const char *buf, size_t size, off_t o
 {
     if(fi == NULL) return -EINVAL;
 
+    std::string p = std::string(path);
+
+    open_files_lock.lock();
+    open_file_t* o = open_files[p];
+    if(o==NULL) {
+        printf("WTF? don't have an open file\n");
+    } else {
+        o->dirty = 1;
+    }
+    open_files_lock.unlock();
+
+    if(debug_level>4) {
+        printf("file %s dirty:%d readers:%d\n", path, o->dirty, o->readers);
+    }
+
     int ret = pwrite(fi->fh, buf, size, offset);
     if (ret == -1) {
         ret = -errno;
@@ -795,10 +893,10 @@ extern "C" int rpc_write(const char *path, const char *buf, size_t size, off_t o
 
 extern "C" int rpc_flush(const char* path, struct fuse_file_info* fi)
 {
-    int ret = greeterPtr->writeback(std::string(path));
-    if(ret != 0) return -1;
+//    int ret = greeterPtr->writeback(std::string(path));
+//    if(ret != 0) return -1;
 
-    ret = close(dup(fi->fh));
+    int ret = close(dup(fi->fh));
     if (ret == -1) {
         return -errno;
     }
@@ -953,21 +1051,27 @@ extern "C" int rpc_fsyncdir(const char *path, int datasync, struct fuse_file_inf
 // ----------------- extended attributes (we do not support them) -----------------
 
 extern "C" int rpc_setxattr(const char *path, const char *name, const char *value, size_t size, int flags) {
-    errno = EINVAL;
+    if(debug_level>2) {
+        printf("rpc_getxattr path:%s name:%s value:%s setting errno to ENOTSUP \"\"\n", path, name, value);
+    }
+    errno = ENOTSUP;
     return -1;
 }
 
 extern "C" int rpc_getxattr(const char *path, const char *name, char *value, size_t size) {
-    errno = ENODATA;
-    return -1;
+    if(debug_level>2) {
+        printf("rpc_getxattr path:%s name:%s return 0\n", path, name);
+    }
+    errno = ENOTSUP;
+    return 0;
 }
 
 extern "C" int rpc_listxattr(const char *path, char *list, size_t size) {
-    errno = ENODATA;
+    errno = ENOTSUP;
     return -1;
 }
 
 extern "C" int rpc_removexattr(const char *path, const char *name) {
-    errno = EINVAL;
+    errno = ENOTSUP;
     return -1;
 }

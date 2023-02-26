@@ -73,6 +73,12 @@ message WritebackRequest {
     uint32 uid = 4;
     uint32 gid = 5;
     bytes data = 6;
+
+    uint32 asec = 7;
+    uint32 anano = 8;
+    uint32 msec = 9;
+    uint32 mnano = 10;
+
 }
 
 message WritebackResponse {
