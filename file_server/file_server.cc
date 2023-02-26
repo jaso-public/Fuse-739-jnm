@@ -77,7 +77,7 @@ uint64_t raw_time() {
 
 
 std::string root = "";
-int debug_flag = 1;
+int debug_flag = 0;
 
 // Logic and data behind the server's behavior.
 class GreeterServiceImpl final : public Greeter::Service {
@@ -454,7 +454,9 @@ class GreeterServiceImpl final : public Greeter::Service {
             return Status::OK;
         }
 
-        std::cout << "random_name:"<<temp<<"!"<<std::endl;
+        if(debug_flag) {
+            std::cout << "random_name:"<<temp<<std::endl;
+        }
 
         // set temp to the full path in our filesystem.
         temp = root+"/staging/"+temp;
