@@ -11,6 +11,9 @@ add_subdirectory(grpc_fuse)
 # build the library that the unreliable filesystem uses for remote calls
 add_subdirectory(remote_fuse)
 
+# build the library that the unreliable filesystem uses for remote calls with error injection
+add_subdirectory(remote_fuse_err_inj)
+
 # build the library that the unreliable filesystem can use to make local calls
 # this is essentially the same as the default build of the unreliable file system
 # except that is has all the all the debug logging that we added to unreliable_ops.c

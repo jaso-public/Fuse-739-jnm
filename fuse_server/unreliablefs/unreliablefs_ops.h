@@ -70,7 +70,8 @@ int unreliable_fallocate(const char *, int, off_t, off_t,
 int unreliable_utimens(const char *path, const struct timespec ts[2]);
 #endif /* HAVE_UTIMENSAT */
 
-typedef enum {
+typedef enum
+{
     OP_GETATTR,
     OP_READLINK,
     OP_MKNOD,

@@ -6,6 +6,8 @@
 void *rpc_init(struct fuse_conn_info *conn);
 void rpc_destroy(void *private_data);
 
+void set_delay(struct timespec *ts);
+void err_cache_reorder();
 
 int rpc_statfs(const char *path, struct statvfs *);
 int rpc_lstat(const char *path, struct stat *statbuf);
@@ -21,7 +23,7 @@ int rpc_rename(const char *path, const char *);
 int rpc_chmod(const char *path, mode_t);
 int rpc_truncate(const char *path, off_t);
 
-int rpc_receive_file(const char*, int, size_t*);
+int rpc_receive_file(const char *, int, size_t *);
 
 int rpc_access(const char *, int);
 int rpc_open(const char *, struct fuse_file_info *);
@@ -41,14 +43,12 @@ int rpc_write_buf(const char *, struct fuse_bufvec *buf, off_t off, struct fuse_
 int rpc_read_buf(const char *, struct fuse_bufvec **bufp, size_t size, off_t off, struct fuse_file_info *);
 int rpc_flock(const char *, struct fuse_file_info *, int op);
 int rpc_fallocate(const char *, int, off_t, off_t, struct fuse_file_info *);
-int rpc_ioctl(const char *, int cmd, void *arg,struct fuse_file_info *, unsigned int flags, void *data);
-
+int rpc_ioctl(const char *, int cmd, void *arg, struct fuse_file_info *, unsigned int flags, void *data);
 
 int rpc_opendir(const char *, struct fuse_file_info *);
 int rpc_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);
 int rpc_releasedir(const char *, struct fuse_file_info *);
 int rpc_fsyncdir(const char *, int, struct fuse_file_info *);
-
 
 // the project requirements say that we can ignore links.
 // we can also ignore security, so we don't care about uid/gid.

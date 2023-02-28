@@ -15,12 +15,12 @@
 #include <sys/xattr.h>
 #include <sys/statvfs.h>
 
-
-
-int dump_stat(char* path) {
+int dump_stat(char *path)
+{
     struct stat buf;
     memset(&buf, 0, sizeof(struct stat));
-    if (lstat(path, &buf) == -1) {
+    if (lstat(path, &buf) == -1)
+    {
         return -errno;
     }
 
@@ -32,26 +32,28 @@ int dump_stat(char* path) {
     printf("gid %d\n", buf.st_gid);
     printf("rdev %lu\n", buf.st_rdev);
     printf("size %lu\n", buf.st_size);
-//    printf("asec %d\n", buf.st_asec);
-//    printf("anano %d\n", buf.st_anano);
-//    printf("msec %d\n", buf.st_msec);
-//    printf("mnano %d\n", buf.st_mnano);
-//    printf("csec %d\n", buf.st_csec);
-//    printf("cnano %d\n", buf.st_cnano);
+    //    printf("asec %d\n", buf.st_asec);
+    //    printf("anano %d\n", buf.st_anano);
+    //    printf("msec %d\n", buf.st_msec);
+    //    printf("mnano %d\n", buf.st_mnano);
+    //    printf("csec %d\n", buf.st_csec);
+    //    printf("cnano %d\n", buf.st_cnano);
     printf("atim %ld.%09ld\n", buf.st_atim.tv_sec, buf.st_atim.tv_nsec);
     printf("mtim %ld.%09ld\n", buf.st_mtim.tv_sec, buf.st_mtim.tv_nsec);
     printf("ctim %ld.%09ld\n", buf.st_ctim.tv_sec, buf.st_ctim.tv_nsec);
     printf("blksize %ld\n", buf.st_blksize);
     printf("blocks %ld\n", buf.st_blocks);
-//    printf("attr %d\n", buf.st_attr);
+    //    printf("attr %d\n", buf.st_attr);
 
     return 0;
 }
 
-int dump_vfsstat(char* path) {
+int dump_vfsstat(char *path)
+{
     struct statvfs buf;
     int ret = statvfs(path, &buf);
-    if (ret == -1) exit(-2);
+    if (ret == -1)
+        exit(-2);
 
     printf("f_bsize %lu\n", buf.f_bsize);
     printf("f_frsize %lu\n", buf.f_frsize);
@@ -64,12 +66,12 @@ int dump_vfsstat(char* path) {
     printf("f_fsid %lu\n", buf.f_fsid);
     printf("f_flag %lu\n", buf.f_flag);
     printf("f_namemax %lu\n", buf.f_namemax);
-//    printf("attr %d\n", buf.st_attr);
+    //    printf("attr %d\n", buf.st_attr);
 
     return 0;
 }
 //
-//struct statvfs {
+// struct statvfs {
 //    unsigned long  f_bsize;    /* Filesystem block size */
 //    unsigned long  f_frsize;   /* Fragment size */
 //    fsblkcnt_t     f_blocks;   /* Size of fs in f_frsize units */
@@ -85,13 +87,15 @@ int dump_vfsstat(char* path) {
 //    unsigned long  f_namemax;  /* Maximum filename length */
 //};
 
-int main(int argc, char** argv) {
-    if(argc<2) {
+int main(int argc, char **argv)
+{
+    if (argc < 2)
+    {
         printf("usage: %s <path>\n", argv[0]);
         exit(1);
     }
 
-    char* path = argv[1];
+    char *path = argv[1];
 
     dump_vfsstat(path);
 
@@ -105,7 +109,8 @@ int main(int argc, char** argv) {
     printf("ts[1] %ld.%09ld\n", ts[1].tv_sec, ts[1].tv_nsec);
 
     int ret = utimensat(AT_FDCWD, path, ts, AT_SYMLINK_NOFOLLOW);
-    if (ret == -1) {
+    if (ret == -1)
+    {
         printf("utimensat failed errno:%d\n", errno);
         return -errno;
     }

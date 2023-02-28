@@ -13,106 +13,110 @@
 #include "unreliablefs_ops.h"
 #include "unreliablefs.h"
 
-extern struct err_inj_q *config_init(const char* conf_path);
+extern struct err_inj_q *config_init(const char *conf_path);
 extern void config_delete(struct err_inj_q *config);
 
 struct unreliablefs_config conf;
 
 extern int debug_level;
-extern char* remote_server;
-extern char* cache_path;
+extern char *remote_server;
+extern char *cache_path;
 
 static struct fuse_operations unreliable_ops = {
-    .getattr     = unreliable_getattr,
-    .readlink    = unreliable_readlink,
-    .mknod       = unreliable_mknod,
-    .mkdir       = unreliable_mkdir,
-    .unlink      = unreliable_unlink,
-    .rmdir       = unreliable_rmdir,
-    .symlink     = unreliable_symlink,
-    .rename      = unreliable_rename,
-    .link        = unreliable_link,
-    .chmod       = unreliable_chmod,
-    .chown       = unreliable_chown,
-    .truncate    = unreliable_truncate,
-    .open	 = unreliable_open,
-    .read	 = unreliable_read,
-    .write       = unreliable_write,
-    .statfs      = unreliable_statfs,
-    .flush       = unreliable_flush,
-    .release     = unreliable_release,
-    .fsync       = unreliable_fsync,
+    .getattr = unreliable_getattr,
+    .readlink = unreliable_readlink,
+    .mknod = unreliable_mknod,
+    .mkdir = unreliable_mkdir,
+    .unlink = unreliable_unlink,
+    .rmdir = unreliable_rmdir,
+    .symlink = unreliable_symlink,
+    .rename = unreliable_rename,
+    .link = unreliable_link,
+    .chmod = unreliable_chmod,
+    .chown = unreliable_chown,
+    .truncate = unreliable_truncate,
+    .open = unreliable_open,
+    .read = unreliable_read,
+    .write = unreliable_write,
+    .statfs = unreliable_statfs,
+    .flush = unreliable_flush,
+    .release = unreliable_release,
+    .fsync = unreliable_fsync,
 #ifdef HAVE_XATTR
-    .setxattr    = unreliable_setxattr,
-    .getxattr    = unreliable_getxattr,
-    .listxattr   = unreliable_listxattr,
+    .setxattr = unreliable_setxattr,
+    .getxattr = unreliable_getxattr,
+    .listxattr = unreliable_listxattr,
     .removexattr = unreliable_removexattr,
 #endif /* HAVE_XATTR */
-    .opendir     = unreliable_opendir,
-    .readdir     = unreliable_readdir,
-    .releasedir  = unreliable_releasedir,
-    .fsyncdir    = unreliable_fsyncdir,
+    .opendir = unreliable_opendir,
+    .readdir = unreliable_readdir,
+    .releasedir = unreliable_releasedir,
+    .fsyncdir = unreliable_fsyncdir,
 
-    .init        = unreliable_init,
-    .destroy     = unreliable_destroy,
+    .init = unreliable_init,
+    .destroy = unreliable_destroy,
 
-    .access      = unreliable_access,
-    .create      = unreliable_create,
-    .ftruncate   = unreliable_ftruncate,
-    .fgetattr    = unreliable_fgetattr,
-    .lock        = unreliable_lock,
+    .access = unreliable_access,
+    .create = unreliable_create,
+    .ftruncate = unreliable_ftruncate,
+    .fgetattr = unreliable_fgetattr,
+    .lock = unreliable_lock,
 #if !defined(__OpenBSD__)
-    .ioctl       = unreliable_ioctl,
+    .ioctl = unreliable_ioctl,
 #endif /* __OpenBSD__ */
 #ifdef HAVE_FLOCK
-    .flock       = unreliable_flock,
+    .flock = unreliable_flock,
 #endif /* HAVE_FLOCK */
 #ifdef HAVE_FALLOCATE
-    .fallocate   = unreliable_fallocate,
+    .fallocate = unreliable_fallocate,
 #endif /* HAVE_FALLOCATE */
 #ifdef HAVE_UTIMENSAT
-    .utimens     = unreliable_utimens,
+    .utimens = unreliable_utimens,
 #endif /* HAVE_UTIMENSAT */
 };
 
-enum {
-     KEY_HELP,
-     KEY_VERSION,
-     KEY_DEBUG,
+enum
+{
+    KEY_HELP,
+    KEY_VERSION,
+    KEY_DEBUG,
 };
 
-#define UNRELIABLEFS_OPT(t, p, v) { t, offsetof(struct unreliablefs_config, p), v }
+#define UNRELIABLEFS_OPT(t, p, v)                     \
+    {                                                 \
+        t, offsetof(struct unreliablefs_config, p), v \
+    }
 #define UNRELIABLEFS_VERSION "0.1"
 
 static struct fuse_opt unreliablefs_opts[] = {
-    UNRELIABLEFS_OPT("-seed=%u",           seed, 0),
-    UNRELIABLEFS_OPT("-basedir=%s",        basedir, 0),
+    UNRELIABLEFS_OPT("-seed=%u", seed, 0),
+    UNRELIABLEFS_OPT("-basedir=%s", basedir, 0),
 
-    FUSE_OPT_KEY("-d",             KEY_DEBUG),
-    FUSE_OPT_KEY("-V",             KEY_VERSION),
-    FUSE_OPT_KEY("-v",             KEY_VERSION),
-    FUSE_OPT_KEY("--version",      KEY_VERSION),
-    FUSE_OPT_KEY("-h",             KEY_HELP),
-    FUSE_OPT_KEY("--help",         KEY_HELP),
-    FUSE_OPT_KEY("subdir",         FUSE_OPT_KEY_DISCARD),
-    FUSE_OPT_KEY("modules=",       FUSE_OPT_KEY_DISCARD),
-    FUSE_OPT_END
-};
+    FUSE_OPT_KEY("-d", KEY_DEBUG),
+    FUSE_OPT_KEY("-V", KEY_VERSION),
+    FUSE_OPT_KEY("-v", KEY_VERSION),
+    FUSE_OPT_KEY("--version", KEY_VERSION),
+    FUSE_OPT_KEY("-h", KEY_HELP),
+    FUSE_OPT_KEY("--help", KEY_HELP),
+    FUSE_OPT_KEY("subdir", FUSE_OPT_KEY_DISCARD),
+    FUSE_OPT_KEY("modules=", FUSE_OPT_KEY_DISCARD),
+    FUSE_OPT_END};
 
 static int unreliablefs_opt_proc(void *data, const char *arg, int key, struct fuse_args *outargs)
 {
-    switch (key) {
+    switch (key)
+    {
     case KEY_HELP:
         fprintf(stderr,
-            "usage: unreliablefs mountpoint [options]\n\n"
-            "general options:\n"
-            "    -h   --help            print help\n"
-            "    -v   --version         print version\n"
-            "    -d                     enable debug output (implies -f)\n"
-            "    -f                     foreground operation\n\n"
-            "unreliablefs options:\n"
-            "    -seed=NUM              random seed\n"
-            "    -basedir=STRING        directory to mount\n\n");
+                "usage: unreliablefs mountpoint [options]\n\n"
+                "general options:\n"
+                "    -h   --help            print help\n"
+                "    -v   --version         print version\n"
+                "    -d                     enable debug output (implies -f)\n"
+                "    -f                     foreground operation\n\n"
+                "unreliablefs options:\n"
+                "    -seed=NUM              random seed\n"
+                "    -basedir=STRING        directory to mount\n\n");
         exit(1);
 
     case KEY_VERSION:
@@ -124,9 +128,11 @@ static int unreliablefs_opt_proc(void *data, const char *arg, int key, struct fu
     return 1;
 }
 
-int is_dir(const char *path) {
+int is_dir(const char *path)
+{
     struct stat statbuf;
-    if (stat(path, &statbuf) != 0) {
+    if (stat(path, &statbuf) != 0)
+    {
         return 0;
     }
 
@@ -138,7 +144,8 @@ int main(int argc, char *argv[])
     // the fuse developers have a wierd way of dealing with arguments, instead of try to figure this all
     // out, we will put our arguments first and then remove our argument from the list passed to fuse_main.
 
-    if(argc<5) {
+    if (argc < 5)
+    {
         printf("usage: %s <remote_server> <cache_dir> <debug_level> [fuse_main args] <mount_dir>\n", argv[0]);
         printf("<remote_server> should be something like 10.1.2.3:55001\n");
         printf("<cache_dir> is a directory on the local host to cache remote files.\n");
@@ -151,13 +158,15 @@ int main(int argc, char *argv[])
     cache_path = strdup(argv[2]);
     debug_level = atoi(argv[3]);
 
-    if(cache_path[strlen(cache_path)-1] != '/') {
+    if (cache_path[strlen(cache_path) - 1] != '/')
+    {
         printf("the cache_dir [%s] should end with a slash\n", cache_path);
         exit(1);
     }
 
     // shift the argvs and fix up argc
-    for(int i=4; i<argc ; i++) argv[i-3] = argv[i];
+    for (int i = 4; i < argc; i++)
+        argv[i - 3] = argv[i];
     argc -= 3;
 
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
@@ -168,17 +177,19 @@ int main(int argc, char *argv[])
     srand(conf.seed);
     fprintf(stdout, "random seed = %d\n", conf.seed);
 
-    if (is_dir(conf.basedir) == 0) {
-       fprintf(stderr, "basedir ('%s') is not a directory\n", conf.basedir);
-       fuse_opt_free_args(&args);
-       return EXIT_FAILURE;
+    if (is_dir(conf.basedir) == 0)
+    {
+        fprintf(stderr, "basedir ('%s') is not a directory\n", conf.basedir);
+        fuse_opt_free_args(&args);
+        return EXIT_FAILURE;
     }
     char subdir_option[PATH_MAX];
     sprintf(subdir_option, "-omodules=subdir,subdir=%s", conf.basedir);
     fuse_opt_add_arg(&args, subdir_option);
     /* build config_path */
     char *real_path = realpath(conf.basedir, NULL);
-    if (!real_path) {
+    if (!real_path)
+    {
         perror("realpath");
         fuse_opt_free_args(&args);
         return EXIT_FAILURE;
@@ -186,7 +197,8 @@ int main(int argc, char *argv[])
     conf.basedir = real_path;
     size_t sz = strlen(DEFAULT_CONF_NAME) + strlen(conf.basedir) + 2;
     conf.config_path = malloc(sz);
-    if (!conf.config_path) {
+    if (!conf.config_path)
+    {
         perror("malloc");
         fuse_opt_free_args(&args);
         return EXIT_FAILURE;
@@ -194,10 +206,12 @@ int main(int argc, char *argv[])
     /* read configuration file on start */
     snprintf(conf.config_path, sz, "%s/%s", conf.basedir, DEFAULT_CONF_NAME);
     conf.errors = config_init(conf.config_path);
-    if (!conf.errors) {
+    if (!conf.errors)
+    {
         fprintf(stdout, "error injections are not configured!\n");
     }
-    if (pthread_mutex_init(&conf.mutex, NULL) != 0) {
+    if (pthread_mutex_init(&conf.mutex, NULL) != 0)
+    {
         fuse_opt_free_args(&args);
         perror("pthread_mutex_init");
         return EXIT_FAILURE;
@@ -206,7 +220,8 @@ int main(int argc, char *argv[])
     fprintf(stdout, "starting FUSE filesystem unreliablefs\n");
 
     printf("argc: %d\n", args.argc);
-    for(int i=0; i<args.argc; i++) {
+    for (int i = 0; i < args.argc; i++)
+    {
         printf("argv[%d]= \"%s\"\n", i, args.argv[i]);
     }
 
@@ -217,7 +232,8 @@ int main(int argc, char *argv[])
     config_delete(conf.errors);
     if (conf.config_path)
         free(conf.config_path);
-    if (!ret) {
+    if (!ret)
+    {
         fprintf(stdout, "random seed = %d\n", conf.seed);
     }
 

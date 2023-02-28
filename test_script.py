@@ -79,7 +79,7 @@ def plot_latencies(times_by_file, title, xlabel):
     fig, ax = plt.subplots(figsize=(20, 10))
     files, times = list( times_by_file.keys() ), list( times_by_file.values() )
     plt.plot(files, times, "--",
-             color="red", linestyle="solid", marker = "o")
+             color="red",  marker = "o")
     
     if "Repeated" not in title:
         ax.set_xscale('log')
@@ -87,6 +87,7 @@ def plot_latencies(times_by_file, title, xlabel):
     plt.ylabel( "Latency (ms)" )
     plt.xlabel( xlabel )
     plt.title(title)
+    print('Show please!')
     return
 
 #'''''''' END PLOT FILE OP LATENCIES ''''''''
@@ -136,3 +137,5 @@ def different_file_size_reads():
 different_file_size_writes()
 different_file_size_reads()
 consec_file_accesses_test("524288.txt")
+
+plt.show()
